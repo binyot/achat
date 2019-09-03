@@ -2,19 +2,19 @@ import socketserver
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from time import time
 import json
-
+import database
 
 class Chat(BaseHTTPRequestHandler):
-    def __init__(self, request, client_address, server):
+    def __init__(self, db, request, client_address, server):
+        self.db = db
         self.response_post = {
-            "/users/add": self.handle_users_add,
-            "/chats/add": self.handle_chats_add,
-            "/chats/get": self.handle_chats_get,
-            "/messages/add": self.handle_messages_add,
-            "/messages/get": self.handle_messages_get
+            "/users/add":       self.db.add_user,
+            "/chats/add":       self.db.add_chat,
+            "/chats/get":       self.db.get_chats_with_user,
+            "/messages/add":    self.db.add_message,
+            "/messages/get":    self.db.get_messages_in_chat
         }
         BaseHTTPRequestHandler.__init__(self, request, client_address, server)
-
 
     def _set_headers(self, code=200):
         self.send_response(code)
@@ -32,17 +32,20 @@ class Chat(BaseHTTPRequestHandler):
         try:
             content = self.read_json(length)
         except json.JSONDecodeError as e:
-            self.respond_error(400)
+            self.respond_error(400, "Bad request.")
             return
 
         handle = self.response_post.get(self.path, None)
         if handle is None:
-            self.respond_error(405)
+            self.respond_error(405, "Method not allowed")
             return
-        handle(content)
-
-        self._set_headers()
-        self.write_json({"echo": content})
+        try:
+            print('content:',content)
+            self.write_json(handle(**content))
+        except Exception as e:
+            self.respond_error(409, str(e))
+            return
+        self.db.commit()
 
     def write_text(self, text):
         self.wfile.write(text.encode("utf-8"))
@@ -53,33 +56,27 @@ class Chat(BaseHTTPRequestHandler):
     def read_json(self, length):
         return json.loads(self.rfile.read(length).decode("utf-8"))
 
-    def respond_error(self, code):
+    def respond_error(self, code, msg):
         self._set_headers(code)
-        self.write_json({"error": code})
+        self.write_json({"error": {
+                            "status": code,
+                            "message": msg
+                            }
+                        })
 
-    def handle_users_add(self, args):
-        pass
 
-    def handle_chats_add(self, args):
-        pass
+from functools import partial
 
-    def handle_chats_get(self, args):
-        pass
-
-    def handle_messages_add(self, args):
-        pass
-
-    def handle_messages_get(self, args):
-        pass
-
-def run(server_class=HTTPServer, handler_class=Chat, addr="localhost", port=80):
+def run(server_class, handler_class, addr, port):
     server_address = (addr, port)
     httpd = server_class(server_address, handler_class)
     print(f"Started httpd listening on {addr}:{port}")
     httpd.serve_forever()
 
 if __name__ == "__main__":
+    db = database.Database(database.connect("chat.db"), "init.sql")
+    Handler_Class = partial(Chat, db)
     try:
-        run(addr="localhost", port=9000)
+        run(HTTPServer, Handler_Class, "localhost", 9000)
     except KeyboardInterrupt:
         print("\nInterrupted\n")
