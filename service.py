@@ -40,7 +40,7 @@ class Chat(BaseHTTPRequestHandler):
             self.respond_error(405, "Method not allowed")
             return
         try:
-            print('content:',content)
+            self._set_headers(201)
             self.write_json(handle(**content))
         except Exception as e:
             self.respond_error(409, str(e))
