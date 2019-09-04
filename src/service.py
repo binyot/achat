@@ -77,6 +77,6 @@ if __name__ == "__main__":
     db = database.Database(database.connect("chat.db"), "init.sql")
     Handler_Class = partial(Chat, db)
     try:
-        run(HTTPServer, Handler_Class, "localhost", 9000)
+        run(HTTPServer, Handler_Class, "0.0.0.0", 9000)
     except KeyboardInterrupt:
         print("\nInterrupted\n")
