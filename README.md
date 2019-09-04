@@ -2,12 +2,7 @@
 
 ### Setup
 
-> clone this repo
-```shell
-$ git clone https://github.com/binyot/achat .
-```
-
-> build and run using docker
+> build and run using docker-compose
 ```shell
 $ docker-compose up
 ```
