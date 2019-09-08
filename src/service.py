@@ -43,7 +43,7 @@ class Chat(BaseHTTPRequestHandler):
             self._set_headers(201)
             self.write_json(handle(**content))
         except Exception as e:
-            self.respond_error(409, str(e))
+            self.respond_error(405, "Bad request.")
             return
         self.db.commit()
 

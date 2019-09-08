@@ -27,13 +27,15 @@ class Database:
         return {"user_id": user_id}
 
     def add_chat(self, name, users):
+        for user_id in users:
+            if not self._user_exists(user_id):
+                raise Exception(f"User {user_id} does not exist")
         q = f"""insert into chats(name, created_at)
                 values('{name}', {timestamp()})
         """
         chat_id = self.cursor.execute(q).lastrowid
         for user_id in users:
             self._insert_user_chat(user_id, chat_id)
-
         return {"chat_id": chat_id}
 
     def add_message(self, author, chat, text):
@@ -79,3 +81,10 @@ class Database:
         """
         user_id = self.cursor.execute(q).fetchone()['id']
         return user_id
+
+    def _user_exists(self, user_id):
+        q = f"""select id from users
+                where id = {user_id}
+             """
+        r = self.cursor.execute(q).fetchone()
+        return bool(r)
